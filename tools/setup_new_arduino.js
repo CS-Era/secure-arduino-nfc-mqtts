@@ -1,4 +1,5 @@
 // tools/setup_new_arduino.js
+
 const { SerialPort } = require('serialport');
 const { ReadlineParser } = require('@serialport/parser-readline');
 const { execSync } = require('child_process');
@@ -43,6 +44,23 @@ function askQuestion(query) {
         rl.close();
         resolve(ans);
     }));
+}
+
+// Funzione per verificare se Arduino è collegato prima di proseguire
+async function checkArduinoConnection() {
+    console.log('\n🔌 Collega il tuo Arduino al computer via USB e premi INVIO per continuare...');
+    await askQuestion('');
+
+    const ports = await SerialPort.list();
+    const arduinoPorts = ports.filter(port => 
+        port.manufacturer && port.manufacturer.toLowerCase().includes('arduino')
+    );
+
+    if (arduinoPorts.length === 0) {
+        throw new Error('❌ Nessun Arduino rilevato! Assicurati di averlo collegato e riprova.');
+    }
+
+    console.log(`✅ Arduino rilevato su porta: ${arduinoPorts[0].path}`);
 }
 
 // Funzione per verificare l'esistenza dei file necessari
@@ -141,21 +159,7 @@ async function getMacFromArduino() {
     console.log('\n⚠️  Per ottenere il MAC Address segui questi passi con attenzione:');
     console.log('1. Apri Arduino IDE');
     console.log('2. Copia questo sketch:');
-    console.log(`
-#include <WiFiS3.h>
-void setup() {
-    Serial.begin(115200);
-    while (!Serial);
-    byte mac[6];
-    WiFi.macAddress(mac);
-    char macStr[18];
-    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
-            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    Serial.println(macStr);
-}
-void loop() {
-    delay(1000);
-}`);
+    console.log(`\n#include <WiFiS3.h>\nvoid setup() {\n    Serial.begin(115200);\n    while (!Serial);\n    byte mac[6];\n    WiFi.macAddress(mac);\n    char macStr[18];\n    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",\n            mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);\n    Serial.println(macStr);\n}\nvoid loop() {\n    delay(1000);\n}`);
     console.log('3. Carica lo sketch sull\'Arduino');
     console.log('4. Apri il Serial Monitor (Tools > Serial Monitor)');
     console.log('5. Nel Serial Monitor, assicurati che la velocità sia impostata a 115200 baud');
@@ -186,9 +190,6 @@ void loop() {
     throw new Error(`MAC Address non valido dopo ${MAX_ATTEMPTS} tentativi. Riavvia lo script e riprova.`);
 }
 
-
-
-
 // Funzione per ottenere input di configurazione dall'utente
 async function getNetworkConfig() {
     console.log('\n⚙️  Configurazione rete');
@@ -216,6 +217,9 @@ async function main() {
     try {
         console.log('=== Setup Nuovo Arduino ===');
         console.log('Questo script configurerà il tuo Arduino per il sistema MQTT/TLS\n');
+
+        // 0. Chiedi all'utente di collegare l'Arduino
+        await checkArduinoConnection();
 
         // 1. Verifica prerequisiti
         checkPrerequisites();
