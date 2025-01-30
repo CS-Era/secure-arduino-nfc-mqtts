@@ -7,6 +7,7 @@
  *              libreria WiFiS3 di Arduino.
  */
 
+require('dotenv').config();
 const fs = require('fs'); // Modulo per la gestione dei file (lettura delle chiavi TLS)
 const tls = require('tls'); // Modulo per la gestione delle connessioni TLS
 const aedes = require('aedes')(); // Istanza di Aedes, un broker MQTT leggero
@@ -14,21 +15,17 @@ const aedes = require('aedes')(); // Istanza di Aedes, un broker MQTT leggero
 /**
  * @brief Registro dei dispositivi Arduino autorizzati
  * @description Mappa di MAC Address autorizzati con la rispettiva API Key.
- * @todo Spostare queste credenziali in un file segreto e leggerle in maniera sicura.
- *       Si può ipotizzare l'utilizzo di un database basato su file.
  */
-const authorizedDevices = {
-    "34:B7:DA:64:7C:90": "3a1c5b2f8d4e9a7c6b2d5e8f3a1c9b4d" //MAC Address Arduino Erasmo : API_KEY
-};
+const authorizedDevices = JSON.parse(process.env.API_KEYS);
 
 /**
  * @brief Configurazione del server TLS
  * @description Definisce le opzioni di sicurezza per il server MQTT con TLS.
  */
 const serverOptions = {
-    key: fs.readFileSync('server.key'), // Chiave privata del server
-    cert: fs.readFileSync('server.crt'), // Certificato TLS del server
-    ca: [fs.readFileSync('ca.crt')], // Certificato dell'Autorità di Certificazione (CA)
+    key: fs.readFileSync(process.env.SERVER_KEY_PATH), // Chiave privata del server
+    cert: fs.readFileSync(process.env.SERVER_CERT_PATH), // Certificato TLS del server
+    ca: [fs.readFileSync(process.env.CA_CERT_PATH)], // Certificato dell'Autorità di Certificazione (CA)
 
     requestCert: false, // Non richiede certificati client (no mTLS)
     rejectUnauthorized: false, 
