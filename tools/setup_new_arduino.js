@@ -137,8 +137,9 @@ async function getMacFromArduino() {
     const portPath = arduinoPorts[0].path;
     console.log(`✅ Arduino trovato su porta: ${portPath}`);
 
-    console.log('\n⚠️  Per ottenere il MAC Address:');
-    console.log('1. Copia questo sketch in Arduino IDE:');
+    console.log('\n⚠️  Per ottenere il MAC Address segui questi passi con attenzione:');
+    console.log('1. Apri Arduino IDE');
+    console.log('2. Copia questo sketch:');
     console.log(`
 #include <WiFiS3.h>
 void setup() {
@@ -154,10 +155,12 @@ void setup() {
 void loop() {
     delay(1000);
 }`);
-    console.log('2. Caricalo sull\'Arduino');
-    console.log('3. Premi INVIO quando sei pronto a leggere il MAC');
+    console.log('3. Carica lo sketch sull\'Arduino');
+    console.log('4. Apri il Serial Monitor (Tools > Serial Monitor) per vedere il MAC Address');
+    console.log('5. IMPORTANTE: Chiudi sia il Serial Monitor che Arduino IDE');
+    console.log('6. Solo dopo aver chiuso entrambi, premi INVIO per continuare');
     
-    await askQuestion('\nPremi INVIO quando hai caricato lo sketch...');
+    await askQuestion('\nPremi INVIO SOLO DOPO aver chiuso Arduino IDE e il Serial Monitor...');
 
     return new Promise((resolve, reject) => {
         const port = new SerialPort({
@@ -184,7 +187,14 @@ void loop() {
 
         port.on('error', (err) => {
             clearTimeout(timeoutId);
-            reject(err);
+            if(err.message.includes('busy')) {
+                reject(new Error('ERROR: La porta seriale è occupata. Assicurati di:\n' +
+                    '1. Aver CHIUSO il Serial Monitor di Arduino IDE\n' +
+                    '2. Aver CHIUSO completamente Arduino IDE\n' +
+                    'Poi prova a eseguire nuovamente lo script.'));
+            }else {
+                reject(err);
+            }     
         });
     });
 }
