@@ -1,52 +1,80 @@
-# IoT Security Project - MQTT over TLS
+# 🔒 IoT Security Project - MQTT over TLS
 
-Sistema di comunicazione sicura tra Arduino UNO R4 WiFi e server MQTT con TLS e autenticazione dei dispositivi.
+Sistema di comunicazione sicura tra **Arduino UNO R4 WiFi** e un **server MQTT con TLS** e autenticazione dei dispositivi.  
+Il progetto garantisce **trasmissioni cifrate e autenticazione sicura** tra i dispositivi IoT e il broker MQTT.
 
-## Prerequisiti
-- Arduino UNO R4 WiFi
-- Node.js e npm
-- Arduino IDE
+---
 
-## Librerie Arduino
-- ArduinoMqttClient by Arduino
-- Adafruit BusIO by Adafruit
-- Adafruit PN532 by Adafruit
-- ArduinoJson by Benoit Blanchnon
-- PubSubClient by Nick O'Leary
+## 📌 Prerequisiti
 
-## Setup
+🔹 **Hardware**  
+- 🛠️ Arduino UNO R4 WiFi  
+- 🔌 Cavo USB-C  
 
-1. Clona il repository
+🔹 **Software**  
+- 🖥️ Node.js e npm  
+- ⚙️ Arduino IDE  
+
+---
+
+## 📦 Librerie Arduino Necessarie
+
+Installa queste librerie dall'**Arduino Library Manager**:
+
+- 📡 **ArduinoMqttClient** by Arduino  
+- 🔄 **Adafruit BusIO** by Adafruit  
+- 🏷️ **Adafruit PN532** by Adafruit  
+- 📑 **ArduinoJson** by Benoît Blanchnon  
+- 📢 **PubSubClient** by Nick O'Leary  
+
+---
+
+## 🚀 Setup del Progetto
+
+### 1️⃣ Clona il repository
 ```bash
 git clone https://github.com/CS-Era/iot-security-project.git
 cd iot-security-project
 ```
 
-2. Installa le dipendenze
+### 2️⃣ Installa le dipendenze
 ```bash
 npm install
 ```
    
-3. Collega Arduino UNO R4 WiFi al computer via USB-C
+### 3️⃣ Collega Arduino UNO R4 WiFi via USB-C
 
-4. Esegui lo script di setup automatico
+### 4️⃣ Configura Arduino automaticamente
 ```bash
 node tools/setup_new_arduino.js
 ```
 
-5. Avvia il server
+### 5️⃣ Avvia il server MQTT
 ```bash
 node server/server.js
 ```
    
 
-## Cosa fa lo script
-* Rilevamento arduino
-* Identificazione MAC Address
-* Generazione API key sicura
-* Richiesta informazioni di rete:
-  - SSID WiFi
-  - Password WiFi
-  - IP del Broker
-* Configurazione di tutti i file necessari
-* Caricamento del codice su Arduino
+## ⚙️ Funzionalità dello Script di Setup
+
+🔧 **Il setup automatizzato esegue diverse operazioni per configurare Arduino UNO R4 WiFi e il server MQTT in pochi passaggi.**  
+
+### 🔍 1️⃣ Rilevamento e Identificazione  
+✔️ Riconoscimento automatico della scheda Arduino collegata  
+✔️ Identificazione univoca del MAC Address del dispositivo  
+
+### 🔑 2️⃣ Generazione Credenziali Sicure  
+✔️ Creazione di un'API key unica e sicura per l'autenticazione del dispositivo  
+
+### 📶 3️⃣ Configurazione della Rete  
+✔️ Richiesta interattiva delle credenziali WiFi:  
+   - 📡 SSID (nome della rete WiFi)  
+   - 🔑 Password WiFi (per la connessione)  
+✔️ Richiesta dell'IP del Broker MQTT per la comunicazione  
+
+### 🛠️ 4️⃣ Setup dei File e Caricamento su Arduino  
+✔️ Configurazione automatica dei file di sistema  
+✔️ Compilazione e upload del codice su Arduino senza necessità di intervento manuale  
+
+🎯 **Risultato:**  
+⚡ Arduino è pronto per comunicare in modo sicuro con il broker MQTT utilizzando TLS e autenticazione con API key 🚀  
