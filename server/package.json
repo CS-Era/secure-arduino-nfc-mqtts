@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "aedes": "^0.51.3",
+    "dotenv": "^16.4.7",
     "mqtt": "^5.10.3"
   }
 }

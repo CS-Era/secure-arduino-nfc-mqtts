@@ -7,7 +7,7 @@
  *              libreria WiFiS3 di Arduino.
  */
 
-require('dotenv').config();
+require('dotenv').config({ path: '../.env'});
 const fs = require('fs'); // Modulo per la gestione dei file (lettura delle chiavi TLS)
 const tls = require('tls'); // Modulo per la gestione delle connessioni TLS
 const aedes = require('aedes')(); // Istanza di Aedes, un broker MQTT leggero
