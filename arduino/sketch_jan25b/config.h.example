@@ -1,0 +1,24 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// Network configuration
+#define WIFI_SSID "your_wifi_ssid"
+#define WIFI_PASSWORD "your_wifi_password"
+#define BROKER_ADDRESS "your_server_or_local_ip_address"
+#define BROKER_PORT 8883
+
+// Security configuration
+#define API_KEY "your_api_key"
+
+// MQTT Topics
+#define PUB_TOPIC "test/topic"
+#define SUB_TOPIC "test/topic"
+
+// Root CA certificate
+const char rootCACert[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+your server CA certificate 
+-----END CERTIFICATE-----
+)EOF";
+
+#endif

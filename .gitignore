@@ -1,14 +1,30 @@
-# Mac OS
-.DS_Store
-
-# Environment variables
+# Environment files
 .env
+.env.*
+!.env.example
+
+# Arduino configuration
+arduino/sketch_jan25b/config.h
+!arduino/sketch_jan25b/config.h.example
 
 # Certificates
 certs/
+*.key
+*.crt
+*.csr
+*.srl
 
-# Arduino config
-arduino/config.h
+# Dependencies
+**/node_modules/
 
-# Node.js
-node_modules/
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE files
+.vscode/
+.idea/
