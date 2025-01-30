@@ -124,6 +124,7 @@ function initEnvFile() {
 async function getMacFromArduino() {
     console.log('\n🔍 Ricerca Arduino...');
     
+    // Cerca porte Arduino disponibili
     const ports = await SerialPort.list();
     const arduinoPorts = ports.filter(port => 
         port.manufacturer && 
@@ -156,48 +157,37 @@ void loop() {
     delay(1000);
 }`);
     console.log('3. Carica lo sketch sull\'Arduino');
-    console.log('4. Apri il Serial Monitor (Tools > Serial Monitor) per vedere il MAC Address');
-    console.log('5. IMPORTANTE: Chiudi sia il Serial Monitor che Arduino IDE');
-    console.log('6. Solo dopo aver chiuso entrambi, premi INVIO per continuare');
+    console.log('4. Apri il Serial Monitor (Tools > Serial Monitor)');
+    console.log('5. Nel Serial Monitor, assicurati che la velocità sia impostata a 115200 baud');
+    console.log('6. COPIA il MAC Address che vedi nel Serial Monitor (es. AA:BB:CC:DD:EE:FF)');
+    console.log('7. Chiudi sia il Serial Monitor che Arduino IDE');
+    console.log('8. Incolla qui il MAC Address quando richiesto');
     
-    await askQuestion('\nPremi INVIO SOLO DOPO aver chiuso Arduino IDE e il Serial Monitor...');
-
-    return new Promise((resolve, reject) => {
-        const port = new SerialPort({
-            path: portPath,
-            baudRate: 115200
-        });
-
-        const parser = port.pipe(new ReadlineParser());
-        let timeoutId;
-
-        timeoutId = setTimeout(() => {
-            port.close();
-            reject(new Error('Timeout nella lettura del MAC Address'));
-        }, 10000);
-
-        parser.on('data', (data) => {
-            const mac = data.trim().toUpperCase();
-            if (mac.match(/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/)) {
-                clearTimeout(timeoutId);
-                port.close();
-                resolve(mac);
-            }
-        });
-
-        port.on('error', (err) => {
-            clearTimeout(timeoutId);
-            if(err.message.includes('busy')) {
-                reject(new Error('ERROR: La porta seriale è occupata. Assicurati di:\n' +
-                    '1. Aver CHIUSO il Serial Monitor di Arduino IDE\n' +
-                    '2. Aver CHIUSO completamente Arduino IDE\n' +
-                    'Poi prova a eseguire nuovamente lo script.'));
-            }else {
-                reject(err);
-            }     
-        });
-    });
+    let macAttempts = 0;
+    const MAX_ATTEMPTS = 3;
+    
+    while (macAttempts < MAX_ATTEMPTS) {
+        const mac = await askQuestion('\nIncolla il MAC Address che hai copiato: ');
+        
+        // Verifica formato MAC
+        if (mac.match(/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/)) {
+            console.log('✅ MAC Address valido!');
+            return mac;
+        }
+        
+        macAttempts++;
+        if (macAttempts < MAX_ATTEMPTS) {
+            console.log('❌ Formato MAC Address non valido.');
+            console.log('Il MAC deve essere nel formato XX:XX:XX:XX:XX:XX dove X sono caratteri esadecimali (0-9 o A-F)');
+            console.log(`Hai ancora ${MAX_ATTEMPTS - macAttempts} tentativi.`);
+        }
+    }
+    
+    throw new Error(`MAC Address non valido dopo ${MAX_ATTEMPTS} tentativi. Riavvia lo script e riprova.`);
 }
+
+
+
 
 // Funzione per ottenere input di configurazione dall'utente
 async function getNetworkConfig() {
@@ -266,17 +256,19 @@ async function main() {
         // 8. Crea config.h dal template
         console.log('\n📝 Creazione config.h dal template...');
         let configContent = fs.readFileSync(PATHS.CONFIG_EXAMPLE, 'utf8');
-        const caCert = fs.readFileSync(path.join(PATHS.CERTS_DIR, 'ca.crt'), 'utf8');
+        const caCert = fs.readFileSync(path.join(PATHS.CERTS_DIR, 'ca.crt'), 'utf8').trim();
         
         // Sostituisci i valori nel template
-        configContent = configContent
-            .replace(/your_wifi_ssid/g, networkConfig.ssid)
-            .replace(/your_wifi_password/g, networkConfig.password)
-            .replace(/your_server_or_local_ip_address/g, networkConfig.broker)
-            .replace(/your_api_key/g, apiKey)
-            .replace(/your server CA certificate/g, caCert.trim());
-        
-        fs.writeFileSync(PATHS.CONFIG, configContent);
+        const configContentUpdated = configContent
+        .replace(/your_wifi_ssid/g, networkConfig.ssid)
+        .replace(/your_wifi_password/g, networkConfig.password)
+        .replace(/your_server_or_local_ip_address/g, networkConfig.broker)
+        .replace(/your_api_key/g, apiKey)
+        // Sostituisci tutto il contenuto tra R"EOF( e )EOF" con il nuovo certificato
+        .replace(/R"EOF\(\s*-----BEGIN CERTIFICATE-----.*-----END CERTIFICATE-----\s*\)EOF"/s, 
+                 `R"EOF(\n${caCert}\n)EOF"`);
+    
+        fs.writeFileSync(PATHS.CONFIG, configContentUpdated);
         console.log('✅ File config.h creato dal template');
 
         console.log('\n✅ Setup completato con successo!');

@@ -11,6 +11,10 @@ require('dotenv').config({ path: '../.env'});
 const fs = require('fs'); // Modulo per la gestione dei file (lettura delle chiavi TLS)
 const tls = require('tls'); // Modulo per la gestione delle connessioni TLS
 const aedes = require('aedes')(); // Istanza di Aedes, un broker MQTT leggero
+const path = require('path');
+
+// Risolvi i percorsi relativi correttamente
+const CERTS_DIR = path.join(__dirname, '..', 'certs');
 
 /**
  * @brief Registro dei dispositivi Arduino autorizzati
@@ -18,14 +22,15 @@ const aedes = require('aedes')(); // Istanza di Aedes, un broker MQTT leggero
  */
 const authorizedDevices = JSON.parse(process.env.API_KEYS);
 
+
 /**
  * @brief Configurazione del server TLS
  * @description Definisce le opzioni di sicurezza per il server MQTT con TLS.
  */
 const serverOptions = {
-    key: fs.readFileSync(process.env.SERVER_KEY_PATH), // Chiave privata del server
-    cert: fs.readFileSync(process.env.SERVER_CERT_PATH), // Certificato TLS del server
-    ca: [fs.readFileSync(process.env.CA_CERT_PATH)], // Certificato dell'Autorità di Certificazione (CA)
+    key: fs.readFileSync(path.join(CERTS_DIR, 'server.key')),
+    cert: fs.readFileSync(path.join(CERTS_DIR, 'server.crt')),
+    ca: [fs.readFileSync(path.join(CERTS_DIR, 'ca.crt'))],
 
     requestCert: false, // Non richiede certificati client (no mTLS)
     rejectUnauthorized: false, 

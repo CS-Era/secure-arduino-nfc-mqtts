@@ -21,11 +21,11 @@ String getMacAddress() {
    byte mac[6];
    WiFi.macAddress(mac);
    char macStr[18];
-   // SECURITY: Usa snprintf per evitare buffer overflow
    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
    return String(macStr);
 }
+
 
 // Callback per i messaggi in arrivo
 void onMqttMessage(int messageSize) {
@@ -95,13 +95,19 @@ void setup() {
    wifiClient.setCACert(rootCACert);
    Serial.println("Certificato CA caricato");
 
-   // 4. Connessione MQTT con autenticazione
+// 4. Connessione MQTT con autenticazione
    Serial.println("\n[4] Connessione MQTT con autenticazione...");
    
    // SECURITY: Imposta timeout per la connessione MQTT
    mqttClient.setConnectionTimeout(10000);  // 10 secondi
-   mqttClient.setId(getMacAddress().c_str());
-   mqttClient.setUsernamePassword(getMacAddress().c_str(), API_KEY);
+   
+   // Ottieni MAC address e imposta credenziali
+   String macAddress = getMacAddress();
+   Serial.print("MAC Address usato per auth: ");
+   Serial.println(macAddress);
+   
+   mqttClient.setId(macAddress);
+   mqttClient.setUsernamePassword(macAddress.c_str(), API_KEY);
    
    Serial.println("Tentativo connessione al broker...");
    if (!mqttClient.connect(BROKER_ADDRESS, BROKER_PORT)) {
@@ -111,7 +117,7 @@ void setup() {
        delay(1000);
        NVIC_SystemReset();  // Reset sicuro del dispositivo
    }
-
+   
    Serial.println("✅ Connesso al broker MQTT!");
 
    // 5. Subscribe e test
