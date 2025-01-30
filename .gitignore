@@ -1,0 +1,14 @@
+# Mac OS
+.DS_Store
+
+# Environment variables
+.env
+
+# Certificates
+certs/
+
+# Arduino config
+arduino/config.h
+
+# Node.js
+node_modules/

@@ -1,0 +1,15 @@
+// Network
+#define WIFI_SSID "your_ssid"
+#define WIFI_PASSWORD "your_password"
+#define BROKER_ADDRESS "your_server_or_local_ip_address"
+#define BROKER_PORT 8883
+
+// Security
+#define API_KEY "your_api_key"
+
+// Root CA certificate
+const char rootCACert[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+your_ca_certificate_here
+-----END CERTIFICATE-----
+)EOF";
