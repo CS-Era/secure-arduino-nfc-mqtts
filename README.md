@@ -57,7 +57,7 @@ node server/server.js
 
 ## ⚙️ Funzionalità dello Script di Setup
 
-🔧 **Il setup automatizzato esegue diverse operazioni per configurare Arduino UNO R4 WiFi e il server MQTT in pochi passaggi.**  
+Il setup automatizzato esegue diverse operazioni per configurare Arduino UNO R4 WiFi e il server MQTT in pochi passaggi  
 
 ### 🔍 1️⃣ Rilevamento e Identificazione  
 ✔️ Riconoscimento automatico della scheda Arduino collegata  
