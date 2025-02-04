@@ -81,6 +81,58 @@ void setup() {
   
 }
 
+
+//inizio biagio
+#include <PubSubClient.h>
+#include "mbedtls/aes.h"
+
+// Chiave AES (deve essere la stessa sul server)
+const byte aes_key[16] = { 
+  0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 
+  0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF 
+};
+
+// Vettore di Inizializzazione (IV) (deve essere inviato con il messaggio)
+byte iv[16] = { 
+  0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0,
+  0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 
+};
+
+void encryptAES(byte *input, byte *output) {
+    mbedtls_aes_context aes;
+    mbedtls_aes_init(&aes);
+    mbedtls_aes_setkey_enc(&aes, aes_key, 128);
+    
+    byte temp_iv[16];
+    memcpy(temp_iv, iv, 16); // Copia dell'IV per non modificarlo
+    mbedtls_aes_crypt_cbc(&aes, MBEDTLS_AES_ENCRYPT, 16, temp_iv, input, output);
+    
+    mbedtls_aes_free(&aes);
+}
+
+void sendEncryptedUID() {
+    String uid = "P9Q3W7E1R5T2Y6U4"; // UID di esempio
+    byte plainText[16] = {0};
+    byte encryptedText[16] = {0};
+    
+    memcpy(plainText, uid.c_str(), uid.length());
+    
+    encryptAES(plainText, encryptedText);
+
+    char encryptedBase64[25];
+    for (int i = 0; i < 16; i++) {
+        sprintf(encryptedBase64 + (i * 2), "%02X", encryptedText[i]);
+    }
+
+    client.publish("arduino/uid", encryptedBase64);
+    Serial.print("UID criptato inviato: ");
+    Serial.println(encryptedBase64);
+}
+
+
+//fine biagio
+
+
 void loop() {
   // Esegui solo 2 round di lettura
   static uint8_t rounds = 0;
