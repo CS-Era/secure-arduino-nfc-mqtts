@@ -81,3 +81,15 @@ Il setup automatizzato esegue diverse operazioni per configurare Arduino UNO R4 
 
 🎯 **Risultato:**  
 ⚡ Arduino è pronto per comunicare in modo sicuro con il broker MQTT utilizzando TLS e autenticazione con API key 🚀  
+
+## Aspetti di security
+1. Sicurezza a livello trasporto: TLS 1.2 con ECDHE-RSA-AES128-GCM-SHA256
+   - ECDHE: Elliptic Curve Diffie-Hellman Ephemeral per key exchange
+   - RSA: per l'autenticazione
+   - AES128-GCM: cifratura simmetrica con Galois/Counter Mode
+   - SHA256: per l'integrità
+2. Sicurezza a livello applicativo: Lightweight Cryptography con TEA + Custom SipHash
+   - Algoritmo di cifratura Tiny Encryption Algorithm, modalità ECB (Electronic CodeBook) e chiave a 128 bit
+   - Algoritmo di autenticazione MAC basato su SipHash modificato, input = (key || IV || ciphertext) e output a 64 bit (il vettore IV random evita gli attacchi di reply). IV viene generato come un array di 8 byte, il ciphertext viene prodotto in blocchi da 8 byte tramite un padding. 
+  
+NOTA: ECB in questo contesto è utilizzato poichè il dato da cifrare è solo di 7 byte (UID sempre diversi) e dunque non rappresenta un problema di sicurezza. Per messaggi più lunghi se ne sconsiglia l'utilizzo.
