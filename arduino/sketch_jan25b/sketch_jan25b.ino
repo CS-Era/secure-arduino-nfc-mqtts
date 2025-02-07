@@ -22,128 +22,105 @@ String getMacAddress() {
 void setup() {
   Serial.begin(115200);
   while (!Serial);
-  delay(3000); // Ritardo iniziale per poter aprire il Serial Monitor
+  delay(3000);
 
   Serial.println("\n=== NFCSecure System ===");
   
   // WiFi
-  Serial.println("\n[1] Inizializzazione WiFi...");
+  Serial.println("\n[WIFI] Inizializzazione...");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("\nWiFi connesso!");
-  Serial.print("MAC Address: ");
-  Serial.println(getMacAddress());
-  Serial.print("IP: ");
-  Serial.println(WiFi.localIP().toString());
+  Serial.println("\n[WIFI] Connessione stabilita");
+  Serial.println("[WIFI] Device inizializzato");
   
   // Test ping
-  Serial.println("\n[2] Test ping server...");
+  Serial.println("\n[CONN] Test connettività server...");
   if (WiFi.ping(BROKER_ADDRESS))
-      Serial.println("Ping riuscito!");
+      Serial.println("[CONN] Test completato con successo");
   else
-      Serial.println("Ping fallito!");
+      Serial.println("[CONN] Test fallito");
   
   // TLS
-  Serial.println("\n[3] Setup TLS...");
+  Serial.println("\n[TLS] Inizializzazione sicurezza...");
   wifiClient.setCACert(rootCACert);
-  Serial.println("Certificate OK!");
+  Serial.println("[TLS] Certificati caricati");
+
+  Serial.println("\n[CONN] Test porta sicura...");
+  WiFiClient testClient;
+  if (testClient.connect(BROKER_ADDRESS, BROKER_PORT)) {
+      Serial.println("[CONN] Porta raggiungibile");
+      testClient.stop();
+  } else {
+      Serial.println("[CONN] Porta non raggiungibile");
+  }
   
   // MQTT
-  Serial.println("\n[4] Setup MQTT...");
+  Serial.println("\n[MQTT] Inizializzazione...");
   mqttClient.setId(getMacAddress());
   mqttClient.setUsernamePassword(getMacAddress(), API_KEY);
+
+  Serial.println("[MQTT] Tentativo di connessione...");
+
   if (!mqttClient.connect(BROKER_ADDRESS, BROKER_PORT)) {
-      Serial.println("MQTT connection failed!");
-      Serial.print("Error: ");
-      Serial.println(mqttClient.connectError());
+      Serial.println("[MQTT] Connessione fallita");
+      Serial.println("[MQTT] Esecuzione test diagnostici...");
+      
+      WiFiClient testClient;
+      if (testClient.connect(BROKER_ADDRESS, BROKER_PORT)) {
+          Serial.println("[MQTT] Test TCP completato");
+          testClient.stop();
+      } else {
+          Serial.println("[MQTT] Test TCP fallito");
+      }
+      
       while (1);
   }
-  Serial.println("MQTT Connected!");
+  Serial.println("[MQTT] Connessione stabilita");
   
   // Inizializzazione componenti
-  Serial.println("\n[5] Init components...");
+  Serial.println("\n[INIT] Setup componenti...");
   if (!nfcManager.begin()){
-      Serial.println("Errore nell'inizializzazione dei componenti.");
+      Serial.println("[INIT] Errore inizializzazione");
       while (1);
   } else {
-      Serial.println("Componenti inizializzati correttamente.");
+      Serial.println("[INIT] Completata con successo");
   }
+
+  Serial.println("\n[MQTT] Configurazione topic...");
+  mqttClient.onMessage(onMessageReceived);
+  mqttClient.subscribe("nfc/response");
+  mqttClient.subscribe("arduino/response");
+  Serial.println("[MQTT] Topic configurati");
   
-  // Pre-registrazione di un tag valido (UID: 11 22 33 44 55 66 77)
+  // Pre-registrazione tag
   uint8_t preRegisteredTag[7] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77};
   if (!tagCache.addTag(preRegisteredTag))
-    Serial.println("Errore nella registrazione del tag.");
+    Serial.println("[CACHE] Errore registrazione tag");
   else
-    Serial.println();
+    Serial.println("[CACHE] Tag registrato con successo");
+}
+
+void onMessageReceived(int messageSize) {
+  String topic = mqttClient.messageTopic();
+  String payload = mqttClient.readString();
   
+  Serial.println("\n[MQTT] Messaggio ricevuto");
+  Serial.println(payload);
 }
-
-
-//inizio biagio
-#include <PubSubClient.h>
-#include "mbedtls/aes.h"
-
-// Chiave AES (deve essere la stessa sul server)
-const byte aes_key[16] = { 
-  0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 
-  0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF 
-};
-
-// Vettore di Inizializzazione (IV) (deve essere inviato con il messaggio)
-byte iv[16] = { 
-  0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0,
-  0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 
-};
-
-void encryptAES(byte *input, byte *output) {
-    mbedtls_aes_context aes;
-    mbedtls_aes_init(&aes);
-    mbedtls_aes_setkey_enc(&aes, aes_key, 128);
-    
-    byte temp_iv[16];
-    memcpy(temp_iv, iv, 16); // Copia dell'IV per non modificarlo
-    mbedtls_aes_crypt_cbc(&aes, MBEDTLS_AES_ENCRYPT, 16, temp_iv, input, output);
-    
-    mbedtls_aes_free(&aes);
-}
-
-void sendEncryptedUID() {
-    String uid = "P9Q3W7E1R5T2Y6U4"; // UID di esempio
-    byte plainText[16] = {0};
-    byte encryptedText[16] = {0};
-    
-    memcpy(plainText, uid.c_str(), uid.length());
-    
-    encryptAES(plainText, encryptedText);
-
-    char encryptedBase64[25];
-    for (int i = 0; i < 16; i++) {
-        sprintf(encryptedBase64 + (i * 2), "%02X", encryptedText[i]);
-    }
-
-    client.publish("arduino/uid", encryptedBase64);
-    Serial.print("UID criptato inviato: ");
-    Serial.println(encryptedBase64);
-}
-
-
-//fine biagio
-
 
 void loop() {
-  // Esegui solo 2 round di lettura
   static uint8_t rounds = 0;
   if (rounds < 2) {
       if (nfcManager.update()) {
           rounds++;
       }
   } else {
-      Serial.println("\n2 round completati. Stop del loop.");
+      Serial.println("\n[SYS] Test completati");
       while (true) { delay(1000); }
   }
-  delay(1000); // Ritardo tra i round
+  delay(1000);
   mqttClient.poll();
 }

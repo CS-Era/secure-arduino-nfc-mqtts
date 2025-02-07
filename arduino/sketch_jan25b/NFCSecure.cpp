@@ -206,7 +206,10 @@ bool SecureTagCache::loadFromEEPROM() {
 NFCManager::NFCManager(MockPN532& nfcReader, SecureTagCache& tagCache, MqttClient& mqttClient)
   : nfc(nfcReader), cache(tagCache), mqtt(mqttClient), isAdmin(false), uidLength(0), rounds(0)
 {
-    uint8_t key[16] = {0x42};
+    // Inizializza la chiave con lo stesso valore usato nel server
+    uint8_t tempKey[] = {0x01,0x23,0x45,0x67,0x89,0xAB,0xCD,0xEF,
+                        0x01,0x23,0x45,0x67,0x89,0xAB,0xCD,0xEF};
+    memcpy(key, tempKey, 16);
     crypto.setKey(key, 16);
 }
 
@@ -216,16 +219,60 @@ NFCManager::NFCManager(MockPN532& nfcReader, SecureTagCache& tagCache, MqttClien
  * @param topic Topic MQTT di destinazione
  * @param data Dati da inviare
  * @param len Lunghezza dei dati
- * @security I dati vengono inviati in formato esadecimale e sono già cifrati
  */
 void NFCManager::sendSecureMessage(const char* topic, const uint8_t* data, size_t len) {
-    mqtt.beginMessage(topic);
-    // Invia i dati in esadecimale (il contenuto è già cifrato)
-    for (size_t i = 0; i < len; i++) {
-        if (data[i] < 0x10) mqtt.print("0");
-        mqtt.print(data[i], HEX);
+    // 1. Genera IV random
+    uint8_t iv[8];
+    for (int i = 0; i < 8; i++) {
+        iv[i] = random(256);
     }
+    
+    // 2. Padding dei dati a multiplo di 8 bytes (blocco TEA)
+    size_t paddedLen = ((len + 7) / 8) * 8;
+    uint8_t* paddedData = new uint8_t[paddedLen];
+    memset(paddedData, 0, paddedLen);  // Padding con zeri
+    memcpy(paddedData, data, len);
+    
+    // 3. Cifra i dati
+    uint8_t* encrypted = new uint8_t[paddedLen];
+    memcpy(encrypted, paddedData, paddedLen);
+    crypto.setKey(key, 16);
+    crypto.encrypt(encrypted, paddedLen);
+    
+    // 4. Genera MAC su IV || ciphertext
+    uint8_t mac[8];
+    uint8_t* macData = new uint8_t[8 + paddedLen];
+    memcpy(macData, iv, 8);
+    memcpy(macData + 8, encrypted, paddedLen);
+    crypto.generateMAC(macData, 8 + paddedLen, mac);
+    
+    // 5. Invia IV || Ciphertext || MAC
+    mqtt.beginMessage(topic);
+    
+    // IV
+    for (int i = 0; i < 8; i++) {
+        if (iv[i] < 0x10) mqtt.print("0");
+        mqtt.print(iv[i], HEX);
+    }
+    
+    // Ciphertext
+    for (size_t i = 0; i < paddedLen; i++) {
+        if (encrypted[i] < 0x10) mqtt.print("0");
+        mqtt.print(encrypted[i], HEX);
+    }
+    
+    // MAC
+    for (int i = 0; i < 8; i++) {
+        if (mac[i] < 0x10) mqtt.print("0");
+        mqtt.print(mac[i], HEX);
+    }
+    
     mqtt.endMessage();
+    
+    // Pulizia memoria
+    delete[] paddedData;
+    delete[] encrypted;
+    delete[] macData;
 }
 
 /**

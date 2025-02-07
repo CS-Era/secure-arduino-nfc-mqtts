@@ -47,6 +47,8 @@ private:
     uint8_t tempUid[7];
     uint8_t uidLength;
     uint8_t rounds;
+    uint8_t key[16]; 
+
 
     void sendSecureMessage(const char* topic, const uint8_t* data, size_t len);
 
