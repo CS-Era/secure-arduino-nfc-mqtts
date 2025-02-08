@@ -136,6 +136,10 @@ function decryptAndVerify(message) {
    return trimmedPlaintext;
 }
 
+function hashValue(value) {
+    return crypto.createHash('sha256').update(value).digest('hex');
+}
+
 // ---------------------------------------------------------------------
 // CONFIGURAZIONE DEL BROKER TLS CON AEDES
 // ---------------------------------------------------------------------
@@ -161,10 +165,16 @@ aedes.authenticate = (client, username, password, callback) => {
 
         /* AGGIUNGERE Log sicuro con libreria crypto (solo hash)
 
-        logEntry.username = 
+        logEntry.username =
         logEntry.password =
 
         */
+
+        const hashedDeviceMac = hashValue(username.toUpperCase()); // Username in maiuscolo + hashato
+        const hashedProvidedApiKey = hashValue(password.toString()); // Password hashata
+
+        logEntry.username = hashedDeviceMac;
+        logEntry.password = hashedProvidedApiKey;
 
         if (authorizedDevices[deviceMac] === providedApiKey) {
             logEntry.auth_state = true;
