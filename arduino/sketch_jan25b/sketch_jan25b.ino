@@ -58,9 +58,20 @@ void setup() {
   }
   
   // MQTT
-  Serial.println("\n[MQTT] Inizializzazione...");
-  mqttClient.setId(getMacAddress());
-  mqttClient.setUsernamePassword(getMacAddress(), API_KEY);
+    Serial.println("\n[MQTT] Inizializzazione autenticazione sicura...");
+    
+    // Prepara credenziali cifrate
+    String deviceMac = getMacAddress();
+    const char* apiKey = API_KEY;
+    
+    // Cifra e prepara le credenziali
+    String encryptedMac = nfcManager.prepareSecureMessage((uint8_t*)deviceMac.c_str(), deviceMac.length());
+    String encryptedKey = nfcManager.prepareSecureMessage((uint8_t*)apiKey, strlen(apiKey));
+    
+    // Usa le credenziali cifrate per l'autenticazione MQTT
+    mqttClient.setId("device_" + String(random(0xffff), HEX));
+    mqttClient.setUsernamePassword(encryptedMac, encryptedKey);
+
 
   Serial.println("[MQTT] Tentativo di connessione...");
 

@@ -50,7 +50,6 @@ private:
     uint8_t key[16]; 
 
 
-    void sendSecureMessage(const char* topic, const uint8_t* data, size_t len);
 
 public:
     NFCManager(MockPN532& nfcReader, SecureTagCache& tagCache, MqttClient& mqttClient);
@@ -58,6 +57,11 @@ public:
     bool update();
     bool begin();
     bool registerNewTag();
+
+    
+    void sendSecureMessage(const char* topic, const uint8_t* data, size_t len);
+    String prepareSecureMessage(const uint8_t* data, size_t len);
+
 };
 
 #endif

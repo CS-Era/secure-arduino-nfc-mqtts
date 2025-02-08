@@ -154,26 +154,35 @@ let logEntry = {};
 aedes.authenticate = (client, username, password, callback) => {
     console.log('\n[AUTH] Nuova richiesta di autenticazione');
 
-    const deviceMac = username.toUpperCase();
-    const providedApiKey = password.toString();
+    try {
+        // Decifra e verifica le credenziali username e password arduino
+        const deviceMac = decryptAndVerify(username.toString()).toString().toUpperCase();
+        const providedApiKey = decryptAndVerify(password.toString()).toString();
 
-    logEntry.username = deviceMac;
-    logEntry.password = providedApiKey;
+        /* AGGIUNGERE Log sicuro con libreria crypto (solo hash)
 
-    if (authorizedDevices[deviceMac] === providedApiKey) {
-        logEntry.auth_state = true;
-        console.log('[AUTH] Autenticazione completata con successo');
-       callback(null, true);
-    } else {
-       console.log('[AUTH] Autenticazione fallita');
-       callback(new Error('Non autorizzato'), false);
-       logEntry.auth_state = false;
-       logEntry.topic = null;
-       logEntry.uid_tag = null;
-       logEntry.tag_state = false;
-       logEntry.timestamp = new Date().toISOString();
-       logEntry.error = '[AUTH] Autenticazione fallita';
-       addLogEntry(logEntry);
+        logEntry.username = 
+        logEntry.password =
+
+        */
+
+        if (authorizedDevices[deviceMac] === providedApiKey) {
+            logEntry.auth_state = true;
+            console.log('[AUTH] Autenticazione completata con successo');
+            callback(null, true);
+        } else {
+            throw new Error('Credenziali non valide');
+        }
+    } catch (error) {
+        console.log('[AUTH] Autenticazione fallita:', error.message);
+        logEntry.auth_state = false;
+        logEntry.topic = null;
+        logEntry.uid_tag = null;
+        logEntry.tag_state = false;
+        logEntry.timestamp = new Date().toISOString();
+        logEntry.error = '[AUTH] Autenticazione fallita: ' + error.message;
+        addLogEntry(logEntry);
+        callback(new Error('Non autorizzato'), false);
     }
 };
 
@@ -211,7 +220,7 @@ serverTLS.listen(portTLS, () => {
 // INIZIALIZZAZIONE DATABASE
 // ---------------------------------------------------------------------
 
-const db = new sqlite3.Database('uids.db');
+const db = new sqlite3.Database('server.db');
 
 db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS uids (
@@ -373,4 +382,5 @@ aedes.on('publish', (packet, client) => {
        });
    }
     addLogEntry(logEntry);
+    console.log(`Print log entry: ${logEntry.username}`);
 });

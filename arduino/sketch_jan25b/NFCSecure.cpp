@@ -214,13 +214,7 @@ NFCManager::NFCManager(MockPN532& nfcReader, SecureTagCache& tagCache, MqttClien
 }
 
 
-/**
- * @brief Invia un messaggio sicuro tramite MQTT
- * @param topic Topic MQTT di destinazione
- * @param data Dati da inviare
- * @param len Lunghezza dei dati
- */
-void NFCManager::sendSecureMessage(const char* topic, const uint8_t* data, size_t len) {
+String NFCManager::prepareSecureMessage(const uint8_t* data, size_t len) {
     // 1. Genera IV random
     uint8_t iv[8];
     for (int i = 0; i < 8; i++) {
@@ -246,33 +240,42 @@ void NFCManager::sendSecureMessage(const char* topic, const uint8_t* data, size_
     memcpy(macData + 8, encrypted, paddedLen);
     crypto.generateMAC(macData, 8 + paddedLen, mac);
     
-    // 5. Invia IV || Ciphertext || MAC
-    mqtt.beginMessage(topic);
+    // 5. Prepara stringa risultato
+    String result;
     
     // IV
     for (int i = 0; i < 8; i++) {
-        if (iv[i] < 0x10) mqtt.print("0");
-        mqtt.print(iv[i], HEX);
+        if (iv[i] < 0x10) result += '0';
+        result += String(iv[i], HEX);
     }
     
     // Ciphertext
     for (size_t i = 0; i < paddedLen; i++) {
-        if (encrypted[i] < 0x10) mqtt.print("0");
-        mqtt.print(encrypted[i], HEX);
+        if (encrypted[i] < 0x10) result += '0';
+        result += String(encrypted[i], HEX);
     }
     
     // MAC
     for (int i = 0; i < 8; i++) {
-        if (mac[i] < 0x10) mqtt.print("0");
-        mqtt.print(mac[i], HEX);
+        if (mac[i] < 0x10) result += '0';
+        result += String(mac[i], HEX);
     }
-    
-    mqtt.endMessage();
     
     // Pulizia memoria
     delete[] paddedData;
     delete[] encrypted;
     delete[] macData;
+    
+    return result;
+}
+
+
+void NFCManager::sendSecureMessage(const char* topic, const uint8_t* data, size_t len) {
+    String secureMessage = prepareSecureMessage(data, len);
+    
+    mqtt.beginMessage(topic);
+    mqtt.print(secureMessage);
+    mqtt.endMessage();
 }
 
 /**
