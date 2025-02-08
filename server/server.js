@@ -385,5 +385,4 @@ aedes.on('publish', (packet, client) => {
        });
    }
     addLogEntry(logEntry);
-    console.log(`Print log entry: ${logEntry.username}`);
 });

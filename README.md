@@ -91,5 +91,11 @@ Il setup automatizzato esegue diverse operazioni per configurare Arduino UNO R4 
 2. Sicurezza a livello applicativo: Lightweight Cryptography con TEA + Custom SipHash
    - Algoritmo di cifratura Tiny Encryption Algorithm, modalità ECB (Electronic CodeBook) e chiave a 128 bit
    - Algoritmo di autenticazione MAC basato su SipHash modificato, input = (key || IV || ciphertext) e output a 64 bit (il vettore IV random evita gli attacchi di reply). IV viene generato come un array di 8 byte, il ciphertext viene prodotto in blocchi da 8 byte tramite un padding. 
-  
+3. Audit Logging System che registra
+   - Tentativi di autenticazione (successo/fallimento)
+   - Verifica degli UID NFC
+   - Eventi di accesso
+   - Errori di sistema
+   - Timestamp
+   
 NOTA: ECB in questo contesto è utilizzato poichè il dato da cifrare è solo di 7 byte (UID sempre diversi) e dunque non rappresenta un problema di sicurezza. Per messaggi più lunghi se ne sconsiglia l'utilizzo.
