@@ -143,6 +143,9 @@ function hashValue(value) {
 // ---------------------------------------------------------------------
 // CONFIGURAZIONE DEL BROKER TLS CON AEDES
 // ---------------------------------------------------------------------
+const CERTS_DIR = path.join(__dirname, '..', 'certs');
+const authorizedDevices = JSON.parse(process.env.API_KEYS);
+const validUIDs = JSON.parse(process.env.VALID_UIDS);
 
 //LOGS: USERNAME, PASSWORD, AUTHSTATE, TOPIC, UIDTAG, TAGSTATE, timestamp, ERROR
 //logs: USER,    PASS,     TRUE,     VERIFY,  0000,   TRUE
@@ -150,9 +153,6 @@ function hashValue(value) {
 //logs: USER,    PASS,     TRUE,     ACCESS,  0000,   TRUE
 //logs: USER,    PASS,     TRUE,     VERIFY,  0000,   FALSE
 
-const CERTS_DIR = path.join(__dirname, '..', 'certs');
-const authorizedDevices = JSON.parse(process.env.API_KEYS);
-const validUIDs = JSON.parse(process.env.VALID_UIDS);
 let logEntry = {};
 
 aedes.authenticate = (client, username, password, callback) => {
@@ -162,13 +162,6 @@ aedes.authenticate = (client, username, password, callback) => {
         // Decifra e verifica le credenziali username e password arduino
         const deviceMac = decryptAndVerify(username.toString()).toString().toUpperCase();
         const providedApiKey = decryptAndVerify(password.toString()).toString();
-
-        /* AGGIUNGERE Log sicuro con libreria crypto (solo hash)
-
-        logEntry.username =
-        logEntry.password =
-
-        */
 
         const hashedDeviceMac = hashValue(username.toUpperCase()); // Username in maiuscolo + hashato
         const hashedProvidedApiKey = hashValue(password.toString()); // Password hashata
