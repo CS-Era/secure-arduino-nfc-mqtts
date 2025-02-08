@@ -301,6 +301,11 @@ function verifyUIDInDB(uid) {
 // GESTIONE MESSAGGI MQTT
 // ---------------------------------------------------------------------
 
+logEntry.tag_state = false;
+logEntry.timestamp = new Date().toISOString();
+logEntry.error = '[AUTH] Autenticazione fallita';
+addLogEntry(logEntry);
+
 aedes.on('publish', (packet, client) => {
    if (!client) return;
    const payloadStr = packet.payload.toString();
@@ -334,12 +339,15 @@ aedes.on('publish', (packet, client) => {
                    })
                    .catch(err => {
                        logEntry.error = err;
+                       logEntry.tag_state = false;
+                       logEntry.timestamp = new Date().toISOString();
                        console.error("[ERROR] Errore durante la verifica");
                        aedes.publish({
                            topic: 'nfc/response',
                            payload: Buffer.from("[ERROR] Errore nella verifica del tag")
                        });
                    });
+               logEntry.error = null;
                logEntry.timestamp = new Date().toISOString();
            }
            else if (packet.topic === 'nfc/access') {
@@ -351,8 +359,16 @@ aedes.on('publish', (packet, client) => {
                    topic: 'nfc/response',
                    payload: Buffer.from("[LOG] Evento di accesso registrato nei log del server")
                });
+               logEntry.error = null;
                logEntry.timestamp = new Date().toISOString();
            }
+       }else{
+           logEntry.topic = null;
+           logEntry.uid_tag = null;
+           logEntry.tag_state = false;
+           logEntry.timestamp = new Date().toISOString();
+           logEntry.error = '[AUTH] Autenticazione fallita';
+           addLogEntry(logEntry);
        }
    } catch (error) {
        logEntry.error = error;
