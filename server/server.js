@@ -301,11 +301,6 @@ function verifyUIDInDB(uid) {
 // GESTIONE MESSAGGI MQTT
 // ---------------------------------------------------------------------
 
-logEntry.tag_state = false;
-logEntry.timestamp = new Date().toISOString();
-logEntry.error = '[AUTH] Autenticazione fallita';
-addLogEntry(logEntry);
-
 aedes.on('publish', (packet, client) => {
    if (!client) return;
    const payloadStr = packet.payload.toString();
@@ -368,7 +363,6 @@ aedes.on('publish', (packet, client) => {
            logEntry.tag_state = false;
            logEntry.timestamp = new Date().toISOString();
            logEntry.error = '[AUTH] Autenticazione fallita';
-           addLogEntry(logEntry);
        }
    } catch (error) {
        logEntry.error = error;
