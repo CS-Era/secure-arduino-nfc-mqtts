@@ -1,4 +1,6 @@
 #include "NFCSecure.h"
+#include "ArduinoGraphics.h"
+#include "Arduino_LED_Matrix.h"
 
 // ----------------- SecureTagCache Implementation -----------------
 
@@ -317,10 +319,12 @@ bool NFCManager::update() {
     bool verified = cache.verifyTag(tempUid);
     if (verified){
         Serial.println("[RESULT] ACCESS GRANTED");
+        displayText(1)
         // Server registra log di acceso
         sendSecureMessage("nfc/access",tempUid,uidLength);    
     }else{
         Serial.println("[RESULT] ACCESS DENIED - SERVER AUTHENTICATION VERIFY");
+          displayText(0)
         // Server gestisce autenticazione
         sendSecureMessage("nfc/verify",tempUid,uidLength);    
     }
@@ -346,4 +350,39 @@ bool NFCManager::registerNewTag() {
         return true;
     }
     return false;
+}
+
+void displayText(int state) {
+  ArduinoLEDMatrix matrix;
+
+  matrix.begin();
+
+  // Inizia a disegnare sulla matrice
+  matrix.beginDraw();
+
+  // Imposta il colore del testo (bianco in questo caso)
+  matrix.stroke(0xFFFFFFFF);
+  matrix.textScrollSpeed(120);
+
+  // Definisce i due testi
+  const char text1[] = "    Access Granted    ";
+  const char text2[] = "    Access Denied    ";
+
+  // Scegli quale testo visualizzare in base al valore di 'state'
+  const char* textToDisplay;
+  if (state == 1) {
+    textToDisplay = text1; // Access Granted
+  } else {
+    textToDisplay = text2; // Access Denied
+  }
+
+  // Imposta il font per il testo
+  matrix.textFont(Font_5x7);
+  
+  // Mostra il testo scelto
+  matrix.beginText(0, 1, 0xFFFFFF); // Colore del testo (bianco)
+  matrix.println(textToDisplay);
+  matrix.endText(SCROLL_LEFT);
+
+  matrix.endDraw();
 }
