@@ -27,6 +27,8 @@ Installa queste librerie dall'**Arduino Library Manager**:
 - 📑 **ArduinoJson** by Benoît Blanchnon  
 - 📢 **PubSubClient** by Nick O'Leary  
 
+Inserisci le librerie presenti in arduino/pn532_libraries nella cartella libraries di Arduino
+
 ---
 
 ## 🚀 Setup del Progetto

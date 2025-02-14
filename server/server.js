@@ -114,7 +114,7 @@ function generateMAC(data) {
 }
 
 function decryptAndVerify(message) {
-   console.log("\n[INFO] Processamento messaggio cifrato");
+   
 
    const iv = hexToBuffer(message.slice(0, 16));
    const mac = hexToBuffer(message.slice(-16));
@@ -127,8 +127,6 @@ function decryptAndVerify(message) {
        console.log("[SECURITY] Verifica integrità fallita");
        throw new Error('MAC verification failed');
    }
-
-   console.log("[INFO] Verifica integrità completata");
 
    const plaintext = decrypt(ciphertext);
    const trimmedPlaintext = removeZeroPadding(plaintext);
@@ -156,7 +154,7 @@ const validUIDs = JSON.parse(process.env.VALID_UIDS);
 let logEntry = {};
 
 aedes.authenticate = (client, username, password, callback) => {
-    console.log('\n[AUTH] Nuova richiesta di autenticazione');
+    console.log('\n[AUTH] Nuova richiesta di autenticazione da dispositivo IoT');
 
     try {
         // Decifra e verifica le credenziali username e password arduino
@@ -333,14 +331,14 @@ aedes.on('publish', (packet, client) => {
                            console.log("[ACCESS] Verifica UID completata con successo");
                            aedes.publish({
                                topic: 'nfc/response',
-                               payload: Buffer.from("[SUCCESS] Tag NFC verificato e autorizzato!")
+                               payload: Buffer.from("[RESULT] ACCESS GRANTED")
                            });
                        } else {
                            logEntry.tag_state = false;
                            console.log("[ACCESS] Verifica UID fallita");
                            aedes.publish({
                                topic: 'nfc/response',
-                               payload: Buffer.from("[ERROR] Tag NFC non autorizzato!")
+                               payload: Buffer.from("[RESULT] ACCESS DENIED")
                            });
                        }
                    })

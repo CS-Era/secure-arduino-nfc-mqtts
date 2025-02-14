@@ -5,7 +5,7 @@
 #include <EEPROM.h>
 #include <ArduinoMqttClient.h>
 #include "LightweightCrypto.h"
-#include "MockPN532.h"
+#include "PN532.h"
 
 // SECURITY: Strutture dati con packed attribute per minimizzare memoria
 struct TagEntry {
@@ -39,7 +39,7 @@ public:
 
 class NFCManager {
 private:
-    MockPN532& nfc;
+    NFCReader& nfc;
     SecureTagCache& cache;
     MqttClient& mqtt;
     LightweightCrypto crypto;
@@ -52,7 +52,7 @@ private:
 
 
 public:
-    NFCManager(MockPN532& nfcReader, SecureTagCache& tagCache, MqttClient& mqttClient);
+    NFCManager(NFCReader& nfcReader, SecureTagCache& tagCache, MqttClient& mqttClient);
     void setAdminMode(bool enabled);
     bool update();
     bool begin();

@@ -67,8 +67,6 @@ bool SecureTagCache::addTag(const uint8_t* uid) {
             crypto.encrypt(cache[replaceIdx].data, 32);
             crypto.generateMAC(cache[replaceIdx].data, 32, cache[replaceIdx].mac);
             
-            // Log non sensibile della registrazione
-            Serial.println("\n>>> PRE-REGISTRATION SUCCESSFUL <<<\n");
             return true;
         }
         return false;
@@ -96,8 +94,6 @@ bool SecureTagCache::addTag(const uint8_t* uid) {
     memcpy(cache[numTags].data, &newTag, sizeof(TagEntry));
     crypto.encrypt(cache[numTags].data, 32);
     crypto.generateMAC(cache[numTags].data, 32, cache[numTags].mac);
-    
-    Serial.println("\n>>> PRE-REGISTRATION SUCCESSFUL <<<\n");
     
     numTags++;
     return true;
@@ -130,12 +126,9 @@ bool SecureTagCache::verifyTag(const uint8_t* uid) {
         
         crypto.decrypt(cache[i].data, 32);
         memcpy(&tag, cache[i].data, sizeof(TagEntry));
+                
         
-        // Log semplificato senza esporre dati sensibili
-        Serial.print("[VERIFY] Tag ");
-        Serial.print(i);
-        if (tag.valid && (memcmp(tag.uid, uid, 7) == 0) && integrityOk) {
-            Serial.println(" => ACCESS GRANTED");
+        if (tag.valid && (memcmp(tag.uid, uid, 4) == 0) && integrityOk) {
             
             // Aggiorna statistiche
             tag.lastUsed = millis();
@@ -146,8 +139,6 @@ bool SecureTagCache::verifyTag(const uint8_t* uid) {
             memcpy(cache[i].data, temp, 32);
             crypto.generateMAC(cache[i].data, 32, cache[i].mac);
             return true;
-        } else {
-            Serial.println(" => ACCESS DENIED");
         }
     }
     return false;
@@ -203,7 +194,7 @@ bool SecureTagCache::loadFromEEPROM() {
  * @param mqttClient Riferimento al client MQTT
  * @security Inizializza una chiave di cifratura per le comunicazioni MQTT
  */
-NFCManager::NFCManager(MockPN532& nfcReader, SecureTagCache& tagCache, MqttClient& mqttClient)
+NFCManager::NFCManager(NFCReader& nfcReader, SecureTagCache& tagCache, MqttClient& mqttClient)
   : nfc(nfcReader), cache(tagCache), mqtt(mqttClient), isAdmin(false), uidLength(0), rounds(0)
 {
     // Inizializza la chiave con lo stesso valore usato nel server
@@ -313,7 +304,6 @@ bool NFCManager::begin() {
  *  - Comunicazione cifrata con il server
  */
 bool NFCManager::update() {
-    if (rounds >= 2) return false;
     if (!nfc.readPassiveTargetID(0, tempUid, &uidLength)) return false;
     
     Serial.print("\n[READ] Tag UID: ");
@@ -325,18 +315,16 @@ bool NFCManager::update() {
     Serial.println();
     
     bool verified = cache.verifyTag(tempUid);
-    Serial.println();
     if (verified){
-        Serial.println("[RESULT] Tag VERIFIED -> ACCESS GRANTED");
+        Serial.println("[RESULT] ACCESS GRANTED");
         // Server registra log di acceso
         sendSecureMessage("nfc/access",tempUid,uidLength);    
     }else{
-        Serial.println("[RESULT] Tag NOT VERIFIED -> SERVER VERIFICATION NEEDED");
+        Serial.println("[RESULT] ACCESS DENIED - SERVER AUTHENTICATION VERIFY");
         // Server gestisce autenticazione
         sendSecureMessage("nfc/verify",tempUid,uidLength);    
     }
 
-    rounds++;
     return true;
 }
 
