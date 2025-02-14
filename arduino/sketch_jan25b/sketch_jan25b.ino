@@ -4,11 +4,13 @@
 #include "NFCSecure.h"
 #include "config.h"
 
+
 WiFiSSLClient wifiClient;
 MqttClient mqttClient(wifiClient);
 NFCReader nfc;
 SecureTagCache tagCache;
 NFCManager nfcManager(nfc, tagCache, mqttClient);
+
 
 
 void setup() {
@@ -121,5 +123,3 @@ void onMessageReceived(int messageSize) {
   Serial.println("\n[MQTT] Messaggio ricevuto");
   Serial.println(payload);
 }
-
-// Funzione che accetta un parametro per scegliere quale testo visualizzare
