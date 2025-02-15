@@ -25,10 +25,33 @@ SecureTagCache::SecureTagCache() : numTags(0) {
  *  - Generazione MAC per integrità
  */
 bool SecureTagCache::addTag(const uint8_t* uid) {
+    // Controlla se il tag è già in cache
+    for (uint8_t i = 0; i < numTags; i++) {
+        uint8_t derivedKey8[8];
+        crypto.hash(cache[i].iv, 8, derivedKey8);
+        uint8_t fullKey[16];
+        memcpy(fullKey, derivedKey8, 8);
+        memcpy(fullKey + 8, derivedKey8, 8);
+        crypto.setKey(fullKey, 16);
+        
+        crypto.decrypt(cache[i].data, 32);
+        TagEntry existingTag;
+        memcpy(&existingTag, cache[i].data, sizeof(TagEntry));
+        
+        // Se il tag esiste già, non aggiungere duplicati
+        if (memcmp(existingTag.uid, uid, 7) == 0) {
+            // Ripristina lo stato crittato precedente
+            crypto.encrypt(cache[i].data, 32);
+            return true;
+        }
+    }
+
+    // Se la cache è piena, cerca uno slot libero o sovrascrivi il meno usato
     if (numTags >= MAX_TAGS) {
         uint16_t minUses = UINT16_MAX;
         int replaceIdx = -1;
         TagEntry temp;
+        
         for (uint8_t i = 0; i < MAX_TAGS; i++) {
             uint8_t derivedKey8[8];
             crypto.hash(cache[i].iv, 8, derivedKey8);
@@ -36,8 +59,10 @@ bool SecureTagCache::addTag(const uint8_t* uid) {
             memcpy(fullKey, derivedKey8, 8);
             memcpy(fullKey + 8, derivedKey8, 8);
             crypto.setKey(fullKey, 16);
+            
             crypto.decrypt(cache[i].data, 32);
             memcpy(&temp, cache[i].data, sizeof(TagEntry));
+            
             if (temp.useCount < minUses) {
                 minUses = temp.useCount;
                 replaceIdx = i;
@@ -45,23 +70,27 @@ bool SecureTagCache::addTag(const uint8_t* uid) {
         }
         
         if (replaceIdx >= 0) {
+            // Prepara nuovo tag
             TagEntry newTag = {0};
             memcpy(newTag.uid, uid, 7);
             newTag.lastUsed = millis();
             newTag.useCount = 1;
             newTag.valid = true;
             
-            // SECURITY: Generazione sicura dell'IV
+            // Genera nuovo IV
             for (int i = 0; i < 8; i++) {
                 cache[replaceIdx].iv[i] = random(256);
             }
             
+            // Deriva chiave
             uint8_t derivedKey8[8];
             crypto.hash(cache[replaceIdx].iv, 8, derivedKey8);
             uint8_t fullKey[16];
             memcpy(fullKey, derivedKey8, 8);
             memcpy(fullKey + 8, derivedKey8, 8);
             crypto.setKey(fullKey, 16);
+            
+            // Cripta e aggiungi MAC
             memset(cache[replaceIdx].data, 0, 32);
             memcpy(cache[replaceIdx].data, &newTag, sizeof(TagEntry));
             crypto.encrypt(cache[replaceIdx].data, 32);
@@ -72,8 +101,7 @@ bool SecureTagCache::addTag(const uint8_t* uid) {
         return false;
     }
     
-    // Aggiunta di un nuovo tag
-    // SECURITY: Generazione sicura dell'IV
+    // Aggiunta di un nuovo tag quando c'è spazio
     for (int i = 0; i < 8; i++) {
         cache[numTags].iv[i] = random(256);
     }
@@ -90,6 +118,7 @@ bool SecureTagCache::addTag(const uint8_t* uid) {
     memcpy(fullKey, derivedKey8, 8);
     memcpy(fullKey + 8, derivedKey8, 8);
     crypto.setKey(fullKey, 16);
+    
     memset(cache[numTags].data, 0, 32);
     memcpy(cache[numTags].data, &newTag, sizeof(TagEntry));
     crypto.encrypt(cache[numTags].data, 32);
@@ -110,37 +139,43 @@ bool SecureTagCache::addTag(const uint8_t* uid) {
  *  - Logging non sensibile delle operazioni
  */
 bool SecureTagCache::verifyTag(const uint8_t* uid) {
+
+    Serial.print("Numero di tag in cache: ");
+    Serial.println(numTags);
+
     TagEntry tag;
     for (uint8_t i = 0; i < numTags; i++) {
+        // Crea copie dei dati per non modificare l'originale
+        uint8_t tempIV[8];
+        uint8_t tempData[32];
+        uint8_t tempMac[8];
+        
+        memcpy(tempIV, cache[i].iv, 8);
+        memcpy(tempData, cache[i].data, 32);
+        memcpy(tempMac, cache[i].mac, 8);
+
         uint8_t derivedKey8[8];
-        crypto.hash(cache[i].iv, 8, derivedKey8);
+        crypto.hash(tempIV, 8, derivedKey8);
         uint8_t fullKey[16];
         memcpy(fullKey, derivedKey8, 8);
         memcpy(fullKey + 8, derivedKey8, 8);
         crypto.setKey(fullKey, 16);
         
-        // SECURITY: Verifica dell'integrità tramite MAC
         uint8_t calculatedMac[8];
-        crypto.generateMAC(cache[i].data, 32, calculatedMac);
-        bool integrityOk = (memcmp(calculatedMac, cache[i].mac, 8) == 0);
+        crypto.generateMAC(tempData, 32, calculatedMac);
+        bool integrityOk = (memcmp(calculatedMac, tempMac, 8) == 0);
         
-        crypto.decrypt(cache[i].data, 32);
-        memcpy(&tag, cache[i].data, sizeof(TagEntry));
+        crypto.decrypt(tempData, 32);
+        memcpy(&tag, tempData, sizeof(TagEntry));
                 
         
-        if (tag.valid && (memcmp(tag.uid, uid, 4) == 0) && integrityOk) {
-            
-            // Aggiorna statistiche
-            tag.lastUsed = millis();
-            tag.useCount++;
-            uint8_t temp[32] = {0};
-            memcpy(temp, &tag, sizeof(TagEntry));
-            crypto.encrypt(temp, 32);
-            memcpy(cache[i].data, temp, 32);
-            crypto.generateMAC(cache[i].data, 32, cache[i].mac);
+        if (tag.valid && (memcmp(tag.uid, uid, 7) == 0) && integrityOk) {
+            Serial.println("Tag verificato con successo!");
             return true;
         }
     }
+    
+    Serial.println("Verifica tag fallita");
     return false;
 }
 
