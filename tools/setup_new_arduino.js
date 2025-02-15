@@ -252,7 +252,10 @@ async function main() {
             .replace(/API_KEYS=\{.*\}/, `API_KEYS=${JSON.stringify(apiKeys)}`)
             .replace('../certs/server.key', path.join('certs', 'server.key'))
             .replace('../certs/server.crt', path.join('certs', 'server.crt'))
-            .replace('../certs/ca.crt', path.join('certs', 'ca.crt'));
+            .replace('../certs/ca.crt', path.join('certs', 'ca.crt'))
+
+            .replace(/VALID_UIDS=\[.\]/, 'VALID_UIDS=["9DBBDC21"]')
+            .replace(/CRYPTO_KEY=./, 'CRYPTO_KEY=0123456789abcdef0123456789abcdef');
         
         fs.writeFileSync(PATHS.ENV, envContent);
         console.log('✅ File .env aggiornato');
